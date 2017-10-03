@@ -29,6 +29,7 @@ import org.springframework.stereotype.Component
 
 import com.blackducksoftware.integration.hub.detect.DetectConfiguration
 import com.blackducksoftware.integration.hub.detect.bomtool.npm.NpmCliDependencyFinder
+import com.blackducksoftware.integration.hub.detect.bomtool.npm.NpmDependencyFinder
 import com.blackducksoftware.integration.hub.detect.bomtool.npm.NpmLockfilePackager
 import com.blackducksoftware.integration.hub.detect.hub.HubSignatureScanner
 import com.blackducksoftware.integration.hub.detect.model.BomToolType
@@ -66,6 +67,9 @@ class NpmBomTool extends BomTool {
 
     @Autowired
     DetectConfiguration detectConfiguration
+
+    @Autowired
+    NpmDependencyFinder npmDependencyFinder
 
     private File packageLockJson
     private File shrinkwrapJson
@@ -162,7 +166,8 @@ class NpmBomTool extends BomTool {
                 logger.debug("Error when running npm ls -json command")
                 logger.debug(npmLsErrorFile.text)
             }
-            def detectCodeLocation = npmCliDependencyFinder.generateCodeLocation(sourcePath, npmLsOutputFile)
+            //            def detectCodeLocation = npmCliDependencyFinder.generateCodeLocation(sourcePath, npmLsOutputFile)
+            def detectCodeLocation = npmDependencyFinder.createDependencyGraph(sourcePath)
 
             return [detectCodeLocation]
         } else if (npmLsErrorFile.length() > 0) {
