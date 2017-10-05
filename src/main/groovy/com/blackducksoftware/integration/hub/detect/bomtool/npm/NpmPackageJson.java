@@ -22,11 +22,11 @@
  */
 package com.blackducksoftware.integration.hub.detect.bomtool.npm;
 
-import java.util.List;
+import java.util.Map;
 
 public class NpmPackageJson {
     public String name;
     public String version;
-    public List<String> dependencies;
-    public List<String> devDependencies;
+    public Map<String, String> dependencies;
+    public Map<String, String> devDependencies;
 }

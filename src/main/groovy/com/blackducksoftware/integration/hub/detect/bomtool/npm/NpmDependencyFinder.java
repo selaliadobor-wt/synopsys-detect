@@ -25,10 +25,12 @@ package com.blackducksoftware.integration.hub.detect.bomtool.npm;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
-import java.util.Stack;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -62,7 +64,7 @@ public class NpmDependencyFinder {
         final File packageJsonFile = new File(sourcePath, NpmBomTool.PACKAGE_JSON);
         final File nodeModulesFolder = new File(sourcePath, NpmBomTool.NODE_MODULES);
 
-        final Stack<File> nodeModulesFiles = generateNodeModulesStack(nodeModulesFolder);
+        final List<File> nodeModulesFiles = generateNodeModulesStack(nodeModulesFolder);
 
         final NpmPackageJson npmPackageJson = generatePackageJson(packageJsonFile);
         final String projectName = npmPackageJson.name;
@@ -74,33 +76,79 @@ public class NpmDependencyFinder {
         final ExternalId externalId = externalIdFactory.createNameVersionExternalId(Forge.NPM, projectName, projectVersion);
         final Dependency root = new Dependency(projectName, projectVersion, externalId);
 
-        traverseNodeModulesStructure(startingDependencies, nodeModulesFiles, root, graph);
+        traverseNodeModulesStructure2(startingDependencies, nodeModulesFiles, root, root, graph);
         return new DetectCodeLocation(BomToolType.NPM, sourcePath, projectName, projectVersion, externalId, graph);
     }
 
-    public Stack<File> traverseNodeModulesStructure(final Set<String> dependenciesCheckList, Stack<File> nodeModulesItems, final Dependency parent, final MutableDependencyGraph graph) {
-
-        while (!nodeModulesItems.isEmpty()) {
-            final File topItem = nodeModulesItems.pop();
-            if (dependenciesCheckList.contains(topItem.getName())) {
-                final NpmPackageJson packageJson = generatePackageJson(topItem);
+    private List<File> traverseNodeModulesStructure(final Set<String> dependenciesCheckList, List<File> nodeModulesItems, final Dependency parent, final Dependency root, final MutableDependencyGraph graph) {
+        for (int i = 0; i < nodeModulesItems.size(); i++) {
+            final File nodeModulesFile = nodeModulesItems.get(i);
+            if (dependenciesCheckList.contains(nodeModulesFile.getName())) {
+                final NpmPackageJson packageJson = generatePackageJson(new File(nodeModulesFile, NpmBomTool.PACKAGE_JSON));
                 final ExternalId externalId = externalIdFactory.createNameVersionExternalId(Forge.NPM, packageJson.name, packageJson.version);
                 final Dependency child = new Dependency(packageJson.name, packageJson.version, externalId);
-                graph.addChildWithParent(child, parent);
-                final File newNodeModules = new File(topItem, NpmBomTool.NODE_MODULES);
-                if (newNodeModules.exists()) {
-                    nodeModulesItems.addAll(generateNodeModulesStack(newNodeModules));
+
+                final boolean nodeAlreadyExists = graph.getDependency(externalId) == null;
+
+                if (parent.equals(root)) {
+                    graph.addChildToRoot(child);
+                } else {
+                    graph.addChildWithParent(child, parent);
                 }
-                final Set<String> startingDependencies = generateStartingDependenciesList(packageJson);
-                nodeModulesItems = traverseNodeModulesStructure(startingDependencies, (Stack<File>) nodeModulesItems.clone(), child, graph);
+
+                if (nodeAlreadyExists) {
+                    final File newNodeModules = new File(nodeModulesFile, NpmBomTool.NODE_MODULES);
+                    List<File> newNodeModulesList = nodeModulesItems;
+                    if (newNodeModules.exists()) {
+                        newNodeModulesList = new ArrayList<>(generateNodeModulesStack(newNodeModules));
+                        newNodeModulesList.addAll(nodeModulesItems);
+                    }
+                    final Set<String> startingDependencies = generateStartingDependenciesList(packageJson);
+                    nodeModulesItems = traverseNodeModulesStructure(startingDependencies, newNodeModulesList, child, root, graph);
+                }
             }
         }
 
         return nodeModulesItems;
     }
 
-    private Stack<File> generateNodeModulesStack(final File nodeModulesFolder) {
-        final Stack<File> nodeModulesFiles = new Stack<>();
+    private void traverseNodeModulesStructure2(final Set<String> dependenciesCheckList, final List<File> nodeModulesItems, final Dependency parent, final Dependency root, final MutableDependencyGraph graph) {
+        final Iterator<File> nodeModulesIterator = nodeModulesItems.iterator();
+
+        while (nodeModulesIterator.hasNext()) {
+            final File nodeModulesFile = nodeModulesIterator.next();
+
+            if (dependenciesCheckList.contains(nodeModulesFile.getName())) {
+                final NpmPackageJson packageJson = generatePackageJson(new File(nodeModulesFile, NpmBomTool.PACKAGE_JSON));
+                final ExternalId externalId = externalIdFactory.createNameVersionExternalId(Forge.NPM, packageJson.name, packageJson.version);
+                final Dependency child = new Dependency(packageJson.name, packageJson.version, externalId);
+
+                final boolean nodeExists = graph.getDependency(externalId) != null;
+
+                if (parent.equals(root)) {
+                    graph.addChildToRoot(child);
+                } else {
+                    graph.addChildWithParent(child, parent);
+                }
+
+                if (!nodeExists) {
+                    final File newNodeModules = new File(nodeModulesFile, NpmBomTool.NODE_MODULES);
+                    List<File> newNodeModulesList = nodeModulesItems;
+                    if (newNodeModules.exists()) {
+                        newNodeModulesList = new ArrayList<>(generateNodeModulesStack(newNodeModules));
+                        newNodeModulesList.addAll(nodeModulesItems);
+                    }
+                    final Set<String> startingDependencies = generateStartingDependenciesList(packageJson);
+                    traverseNodeModulesStructure2(startingDependencies, newNodeModulesList, child, root, graph);
+                } else {
+                    nodeModulesIterator.remove();
+                }
+            }
+        }
+    }
+
+    private List<File> generateNodeModulesStack(final File nodeModulesFolder) {
+        final List<File> nodeModulesFiles = new ArrayList<>();
         nodeModulesFiles.addAll(Arrays.asList(nodeModulesFolder.listFiles()));
         return nodeModulesFiles;
     }
@@ -119,10 +167,10 @@ public class NpmDependencyFinder {
     private Set<String> generateStartingDependenciesList(final NpmPackageJson packageJson) {
         final Set<String> startingDependencies = new HashSet<>();
         if (packageJson.dependencies != null) {
-            startingDependencies.addAll(packageJson.dependencies);
+            startingDependencies.addAll(packageJson.dependencies.keySet());
         }
         if (detectConfiguration.getNpmIncludeDevDependencies() && (packageJson.devDependencies != null)) {
-            startingDependencies.addAll(packageJson.devDependencies);
+            startingDependencies.addAll(packageJson.devDependencies.keySet());
         }
 
         return startingDependencies;

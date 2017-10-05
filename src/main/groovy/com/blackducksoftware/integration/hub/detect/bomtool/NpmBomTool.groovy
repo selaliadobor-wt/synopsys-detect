@@ -166,9 +166,11 @@ class NpmBomTool extends BomTool {
                 logger.debug("Error when running npm ls -json command")
                 logger.debug(npmLsErrorFile.text)
             }
+            long start = System.currentTimeMillis()
             //            def detectCodeLocation = npmCliDependencyFinder.generateCodeLocation(sourcePath, npmLsOutputFile)
             def detectCodeLocation = npmDependencyFinder.createDependencyGraph(sourcePath)
-
+            long end = System.currentTimeMillis()
+            logger.info("Time to run method ${end - start} ms.")
             return [detectCodeLocation]
         } else if (npmLsErrorFile.length() > 0) {
             logger.error("Error when running npm ls -json command")
