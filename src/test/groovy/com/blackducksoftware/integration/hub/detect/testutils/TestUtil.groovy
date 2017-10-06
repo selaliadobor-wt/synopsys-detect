@@ -25,6 +25,7 @@ class TestUtil {
     void testJsonResource(String expectedResourcePath, Object object) {
         final String expected = getResourceAsUTF8String(expectedResourcePath)
         final String actual = gson.toJson(object)
+        println actual
         testJson(expected, actual)
     }
 
@@ -36,7 +37,8 @@ class TestUtil {
         if (resourcePath.startsWith('/')) {
             resourcePath = resourcePath.replaceFirst('/', '')
         }
-        ResourceUtil.getResourceAsString(resourcePath, StandardCharsets.UTF_8.toString())
+        String data = ResourceUtil.getResourceAsString(resourcePath, StandardCharsets.UTF_8.toString())
+        data.split("\r?\n").join(System.lineSeparator)
     }
 
     void createExpectedFile(String resourcePath, Object expectedObject) {
