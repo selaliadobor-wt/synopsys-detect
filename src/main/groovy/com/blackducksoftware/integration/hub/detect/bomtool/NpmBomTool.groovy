@@ -86,12 +86,12 @@ class NpmBomTool extends BomTool {
         boolean containsPackageLockJson = packageLockJson
         boolean containsShrinkwrapJson = shrinkwrapJson
 
-        if (containsPackageJson && !containsNodeModules) {
-            logger.warn("package.json was located in ${sourcePath}, but the node_modules folder was NOT located. Please run 'npm install' in that location and try again.")
-        } else if (containsPackageLockJson) {
+        if (containsPackageLockJson) {
             logger.info("Using ${PACKAGE_LOCK_JSON}")
         } else if (shrinkwrapJson) {
             logger.info("Using ${SHRINKWRAP_JSON}")
+        } else if (containsPackageJson && !containsNodeModules) {
+            logger.warn("package.json was located in ${sourcePath}, but the node_modules folder was NOT located. Please run 'npm install' in that location and try again.")
         } else if (containsPackageJson && containsNodeModules) {
             logger.info("Using node_modules traversal method")
         }
@@ -109,7 +109,7 @@ class NpmBomTool extends BomTool {
         } else if (shrinkwrapJson) {
             codeLocations.addAll(extractFromLockFile(shrinkwrapJson))
         } else {
-            codeLocations.addAll(extractFromCommand())
+            codeLocations.addAll(extractFromTraversal())
         }
 
         if (!codeLocations.empty) {
@@ -126,7 +126,7 @@ class NpmBomTool extends BomTool {
         [detectCodeLocation]
     }
 
-    private List<DetectCodeLocation> extractFromCommand() {
+    private List<DetectCodeLocation> extractFromTraversal() {
         def detectCodeLocation = npmDependencyFinder.createDependencyGraph(sourcePath)
         [detectCodeLocation]
     }
