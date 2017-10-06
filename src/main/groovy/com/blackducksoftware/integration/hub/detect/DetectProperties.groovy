@@ -246,7 +246,7 @@ class DetectProperties {
     @Value('${detect.python.path}')
     String pythonPath
 
-    @ValueDescription(description="The path of the Npm executable", group=DetectProperties.GROUP_NPM)
+    @ValueDescription(description="The path of the Npm executable (No longer in use)", group=DetectProperties.GROUP_NPM)
     @Value('${detect.npm.path}')
     String npmPath
 
@@ -254,9 +254,13 @@ class DetectProperties {
     @Value('${detect.npm.include.dev.dependencies}')
     String npmIncludeDevDependencies
 
-    @ValueDescription(description="The path of the node executable that is used by Npm", group=DetectProperties.GROUP_NPM)
+    @ValueDescription(description="The path of the node executable that is used by Npm (No longer in use)", group=DetectProperties.GROUP_NPM)
     @Value('${detect.npm.node.path}')
     String npmNodePath
+
+    @ValueDescription(description="If you have installed some npm packages globally, specify that location using this property", group=DetectProperties.GROUP_NPM)
+    @Value('${detect.npm.global.packages}')
+    String npmGlobalPackages
 
     @ValueDescription(description="The path of the pear executable", group=DetectProperties.GROUP_PEAR)
     @Value('${detect.pear.path}')
