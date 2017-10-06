@@ -159,6 +159,7 @@ class NpmBomTool extends BomTool {
             exeArgs.add('-prod')
         }
         npmLsExe.executableArguments = exeArgs
+        long startExe = System.currentTimeMillis()
         executableRunner.executeToFile(npmLsExe, npmLsOutputFile, npmLsErrorFile)
 
         if (npmLsOutputFile.length() > 0) {
@@ -171,6 +172,7 @@ class NpmBomTool extends BomTool {
             def detectCodeLocation = npmDependencyFinder.createDependencyGraph(sourcePath)
             long end = System.currentTimeMillis()
             logger.info("Time to run method ${end - start} ms.")
+            //            logger.info("Time to run method ${end - startExe} ms.")
             return [detectCodeLocation]
         } else if (npmLsErrorFile.length() > 0) {
             logger.error("Error when running npm ls -json command")

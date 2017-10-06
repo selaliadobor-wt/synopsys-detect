@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.Stack;
 
@@ -71,36 +72,32 @@ public class NpmDependencyFinder {
         final Set<String> startingDependencies = generateStartingDependenciesList(npmPackageJson);
         final MutableDependencyGraph graph = new MutableMapDependencyGraph();
 
-        final ExternalId externalId = externalIdFactory.createNameVersionExternalId(Forge.NPM, projectName, projectVersion);
-        final Dependency root = new Dependency(projectName, projectVersion, externalId);
+        final Dependency root = generateDependency(npmPackageJson);
 
-        traverseNodeModulesStructure(startingDependencies, nodeModulesPathsStack, root, startingDependencies, graph);
-        return new DetectCodeLocation(BomToolType.NPM, sourcePath, projectName, projectVersion, externalId, graph);
+        traverseNodeModulesStructure(startingDependencies, nodeModulesPathsStack, root, true, graph);
+        return new DetectCodeLocation(BomToolType.NPM, sourcePath, projectName, projectVersion, root.externalId, graph);
     }
 
-    private void traverseNodeModulesStructure(final Set<String> dependenciesCheckList, final Stack<String> nodeModulesPathsStack, final Dependency parent, final Set<String> rootDependencies, final MutableDependencyGraph graph) {
+    private void traverseNodeModulesStructure(final Set<String> dependenciesCheckList, final Stack<String> nodeModulesPathsStack, final Dependency parent, final boolean firstIteration, final MutableDependencyGraph graph) {
         while (!nodeModulesPathsStack.isEmpty()) {
             final String currentNodeModulesPath = nodeModulesPathsStack.pop();
-            for (final String dependencyName : dependenciesCheckList) {
+            final Iterator<String> dependenciesCheckListIterator = dependenciesCheckList.iterator();
+            while (dependenciesCheckListIterator.hasNext()) {
+                final String dependencyName = dependenciesCheckListIterator.next();
                 final File dependencyDirectory = new File(currentNodeModulesPath, dependencyName);
                 if (dependencyDirectory.exists()) {
                     final NpmPackageJson packageJson = generatePackageJson(new File(dependencyDirectory, NpmBomTool.PACKAGE_JSON));
-                    final String projectName = packageJson.name;
-                    final String projectVersion = packageJson.version;
-                    final ExternalId externalId = externalIdFactory.createNameVersionExternalId(Forge.NPM, projectName, projectVersion);
-                    final Dependency child = new Dependency(projectName, projectVersion, externalId);
+                    final Dependency child = generateDependency(packageJson);
 
-                    final boolean dependencyAlreadyExists = graph.getDependency(externalId) != null;
+                    final boolean dependencyAlreadyExists = graph.hasDependency(child);
 
-                    if (rootDependencies.contains(projectName)) {
+                    if (firstIteration) {
                         graph.addChildToRoot(child);
+                    } else {
+                        graph.addChildWithParents(child, parent);
                     }
 
                     if (!dependencyAlreadyExists) {
-                        if (!rootDependencies.contains(projectName)) {
-                            graph.addChildWithParents(child, parent);
-                        }
-
                         final Stack<String> newNodeModulesPathsStack = (Stack<String>) nodeModulesPathsStack.clone();
                         newNodeModulesPathsStack.add(currentNodeModulesPath);
                         final File currentDirectoryNodeModules = new File(dependencyDirectory, NpmBomTool.NODE_MODULES);
@@ -108,18 +105,22 @@ public class NpmDependencyFinder {
                             newNodeModulesPathsStack.add(currentDirectoryNodeModules.getPath());
                         }
                         final Set<String> startingDependencies = generateStartingDependenciesList(packageJson);
-                        traverseNodeModulesStructure(startingDependencies, newNodeModulesPathsStack, child, rootDependencies, graph);
+                        traverseNodeModulesStructure(startingDependencies, newNodeModulesPathsStack, child, false, graph);
                     }
+
+                    dependenciesCheckListIterator.remove();
                 }
             }
         }
     }
 
-    // private Stack<String> generatePathsStack(final File nodeModulesFolder) {
-    // final Stack<String> nodeModulesFiles = new Stack<>();
-    // nodeModulesFiles.addAll(Arrays.asList(nodeModulesFolder.list()));
-    // return nodeModulesFiles;
-    // }
+    private Dependency generateDependency(final NpmPackageJson packageJson) {
+        final String projectName = packageJson.name;
+        final String projectVersion = packageJson.version;
+        final ExternalId externalId = externalIdFactory.createNameVersionExternalId(Forge.NPM, projectName, projectVersion);
+        final Dependency dependency = new Dependency(projectName, projectVersion, externalId);
+        return dependency;
+    }
 
     private NpmPackageJson generatePackageJson(final File packageJsonFile) {
         try {
