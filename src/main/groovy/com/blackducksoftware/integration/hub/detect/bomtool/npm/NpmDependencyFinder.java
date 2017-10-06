@@ -69,7 +69,7 @@ public class NpmDependencyFinder {
         final String projectName = npmPackageJson.name;
         final String projectVersion = npmPackageJson.version;
 
-        final Set<String> startingDependencies = generateStartingDependenciesList(npmPackageJson);
+        final Set<String> startingDependencies = generateStartingDependenciesList(npmPackageJson, true);
         final MutableDependencyGraph graph = new MutableMapDependencyGraph();
 
         final Dependency root = generateDependency(npmPackageJson);
@@ -87,25 +87,27 @@ public class NpmDependencyFinder {
                 final File dependencyDirectory = new File(currentNodeModulesPath, dependencyName);
                 if (dependencyDirectory.exists()) {
                     final NpmPackageJson packageJson = generatePackageJson(new File(dependencyDirectory, NpmBomTool.PACKAGE_JSON));
-                    final Dependency child = generateDependency(packageJson);
+                    if (packageJson.name != null && packageJson.version != null) {
+                        final Dependency child = generateDependency(packageJson);
 
-                    final boolean dependencyAlreadyExists = graph.hasDependency(child);
+                        final boolean dependencyAlreadyExists = graph.hasDependency(child);
 
-                    if (firstIteration) {
-                        graph.addChildToRoot(child);
-                    } else {
-                        graph.addChildWithParents(child, parent);
-                    }
-
-                    if (!dependencyAlreadyExists) {
-                        final Stack<String> newNodeModulesPathsStack = (Stack<String>) nodeModulesPathsStack.clone();
-                        newNodeModulesPathsStack.add(currentNodeModulesPath);
-                        final File currentDirectoryNodeModules = new File(dependencyDirectory, NpmBomTool.NODE_MODULES);
-                        if (currentDirectoryNodeModules.exists()) {
-                            newNodeModulesPathsStack.add(currentDirectoryNodeModules.getPath());
+                        if (firstIteration) {
+                            graph.addChildToRoot(child);
+                        } else {
+                            graph.addChildWithParents(child, parent);
                         }
-                        final Set<String> startingDependencies = generateStartingDependenciesList(packageJson);
-                        traverseNodeModulesStructure(startingDependencies, newNodeModulesPathsStack, child, false, graph);
+
+                        if (!dependencyAlreadyExists) {
+                            final Stack<String> newNodeModulesPathsStack = (Stack<String>) nodeModulesPathsStack.clone();
+                            newNodeModulesPathsStack.add(currentNodeModulesPath);
+                            final File currentDirectoryNodeModules = new File(dependencyDirectory, NpmBomTool.NODE_MODULES);
+                            if (currentDirectoryNodeModules.exists()) {
+                                newNodeModulesPathsStack.add(currentDirectoryNodeModules.getPath());
+                            }
+                            final Set<String> startingDependencies = generateStartingDependenciesList(packageJson, false);
+                            traverseNodeModulesStructure(startingDependencies, newNodeModulesPathsStack, child, false, graph);
+                        }
                     }
 
                     dependenciesCheckListIterator.remove();
@@ -133,12 +135,12 @@ public class NpmDependencyFinder {
         }
     }
 
-    private Set<String> generateStartingDependenciesList(final NpmPackageJson packageJson) {
+    private Set<String> generateStartingDependenciesList(final NpmPackageJson packageJson, final boolean initialProjectDependencies) {
         final Set<String> startingDependencies = new HashSet<>();
         if (packageJson.dependencies != null) {
             startingDependencies.addAll(packageJson.dependencies.keySet());
         }
-        if (detectConfiguration.getNpmIncludeDevDependencies() && (packageJson.devDependencies != null)) {
+        if (initialProjectDependencies && detectConfiguration.getNpmIncludeDevDependencies() && (packageJson.devDependencies != null)) {
             startingDependencies.addAll(packageJson.devDependencies.keySet());
         }
 
