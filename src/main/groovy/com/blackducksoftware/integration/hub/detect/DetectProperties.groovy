@@ -258,10 +258,6 @@ class DetectProperties {
     @Value('${detect.npm.node.path}')
     String npmNodePath
 
-    @ValueDescription(description="If you have installed some npm packages globally, specify that location using this property", group=DetectProperties.GROUP_NPM)
-    @Value('${detect.npm.global.packages}')
-    String npmGlobalPackages
-
     @ValueDescription(description="The path of the pear executable", group=DetectProperties.GROUP_PEAR)
     @Value('${detect.pear.path}')
     String pearPath

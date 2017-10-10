@@ -334,9 +334,6 @@ class DetectConfiguration {
     public String getNpmNodePath() {
         return detectProperties.npmNodePath
     }
-    public String getNpmGlobalPackages() {
-        return detectProperties.npmGlobalPackages
-    }
     public String getPearPath() {
         return detectProperties.pearPath
     }

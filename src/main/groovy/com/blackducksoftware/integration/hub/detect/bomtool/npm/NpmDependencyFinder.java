@@ -63,10 +63,6 @@ public class NpmDependencyFinder {
         final File nodeModulesFolder = new File(sourcePath, NpmBomTool.NODE_MODULES);
 
         final Stack<String> nodeModulesPathsStack = new Stack<>();
-        final String globalNodeModulesPath = detectConfiguration.getNpmGlobalPackages();
-        if (globalNodeModulesPath != null) {
-            nodeModulesPathsStack.push(globalNodeModulesPath);
-        }
         nodeModulesPathsStack.push(nodeModulesFolder.getPath());
 
         final NpmPackageJson npmPackageJson = generatePackageJson(packageJsonFile);
