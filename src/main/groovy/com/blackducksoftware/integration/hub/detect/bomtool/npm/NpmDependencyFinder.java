@@ -88,31 +88,35 @@ public class NpmDependencyFinder {
                 if (dependencyDirectory.exists()) {
                     final NpmPackageJson packageJson = generatePackageJson(new File(dependencyDirectory, NpmBomTool.PACKAGE_JSON));
                     if (packageJson.name != null && packageJson.version != null) {
-                        final Dependency child = generateDependency(packageJson);
-
-                        final boolean dependencyAlreadyExists = graph.hasDependency(child);
-
-                        if (firstIteration) {
-                            graph.addChildToRoot(child);
-                        } else {
-                            graph.addChildWithParents(child, parent);
-                        }
-
-                        if (!dependencyAlreadyExists) {
-                            final Stack<String> newNodeModulesPathsStack = (Stack<String>) nodeModulesPathsStack.clone();
-                            newNodeModulesPathsStack.add(currentNodeModulesPath);
-                            final File currentDirectoryNodeModules = new File(dependencyDirectory, NpmBomTool.NODE_MODULES);
-                            if (currentDirectoryNodeModules.exists()) {
-                                newNodeModulesPathsStack.add(currentDirectoryNodeModules.getPath());
-                            }
-                            final Set<String> startingDependencies = generateStartingDependenciesList(packageJson, false);
-                            traverseNodeModulesStructure(startingDependencies, newNodeModulesPathsStack, child, false, graph);
-                        }
+                        addDependencyToGraph(packageJson, parent, firstIteration, graph, currentNodeModulesPath, dependencyDirectory, nodeModulesPathsStack);
                     }
 
                     dependenciesCheckListIterator.remove();
                 }
             }
+        }
+    }
+
+    private void addDependencyToGraph(final NpmPackageJson packageJson, final Dependency parent, final boolean firstIteration, final MutableDependencyGraph graph, final String currentNodeModulesPath, final File dependencyDirectory,
+            final Stack<String> nodeModulesPathsStack) {
+        final Dependency child = generateDependency(packageJson);
+        final boolean dependencyAlreadyExists = graph.hasDependency(child);
+
+        if (firstIteration) {
+            graph.addChildToRoot(child);
+        } else {
+            graph.addChildWithParents(child, parent);
+        }
+
+        if (!dependencyAlreadyExists) {
+            final Stack<String> newNodeModulesPathsStack = (Stack<String>) nodeModulesPathsStack.clone();
+            newNodeModulesPathsStack.add(currentNodeModulesPath);
+            final File currentDirectoryNodeModules = new File(dependencyDirectory, NpmBomTool.NODE_MODULES);
+            if (currentDirectoryNodeModules.exists()) {
+                newNodeModulesPathsStack.add(currentDirectoryNodeModules.getPath());
+            }
+            final Set<String> startingDependencies = generateStartingDependenciesList(packageJson, false);
+            traverseNodeModulesStructure(startingDependencies, newNodeModulesPathsStack, child, false, graph);
         }
     }
 
