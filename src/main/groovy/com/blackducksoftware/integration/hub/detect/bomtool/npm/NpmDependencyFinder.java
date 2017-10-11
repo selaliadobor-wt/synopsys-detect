@@ -22,9 +22,6 @@
  */
 package com.blackducksoftware.integration.hub.detect.bomtool.npm;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -40,11 +37,9 @@ import com.blackducksoftware.integration.hub.bdio.model.dependency.Dependency;
 import com.blackducksoftware.integration.hub.bdio.model.externalid.ExternalId;
 import com.blackducksoftware.integration.hub.bdio.model.externalid.ExternalIdFactory;
 import com.blackducksoftware.integration.hub.detect.DetectConfiguration;
-import com.blackducksoftware.integration.hub.detect.bomtool.NpmBomTool;
 import com.blackducksoftware.integration.hub.detect.model.BomToolType;
 import com.blackducksoftware.integration.hub.detect.model.DetectCodeLocation;
 import com.google.gson.Gson;
-import com.google.gson.stream.JsonReader;
 
 @Component
 public class NpmDependencyFinder {
@@ -59,13 +54,12 @@ public class NpmDependencyFinder {
     DetectConfiguration detectConfiguration;
 
     public DetectCodeLocation createDependencyGraph(final String sourcePath) {
-        final File packageJsonFile = new File(sourcePath, NpmBomTool.PACKAGE_JSON);
-        final File nodeModulesFolder = new File(sourcePath, NpmBomTool.NODE_MODULES);
+        final NpmProjectFolder npmProjectFolder = new NpmProjectFolder(sourcePath);
+        final NpmPackageJson npmPackageJson = npmProjectFolder.getPackageJson(gson);
 
-        final Stack<String> nodeModulesPathsStack = new Stack<>();
-        nodeModulesPathsStack.push(nodeModulesFolder.getPath());
+        final Stack<NpmProjectFolder> projectFolderStack = new Stack<>();
+        projectFolderStack.push(npmProjectFolder);
 
-        final NpmPackageJson npmPackageJson = generatePackageJson(packageJsonFile);
         final String projectName = npmPackageJson.name;
         final String projectVersion = npmPackageJson.version;
 
@@ -74,21 +68,21 @@ public class NpmDependencyFinder {
 
         final Dependency root = generateDependency(npmPackageJson);
 
-        traverseNodeModulesStructure(startingDependencies, nodeModulesPathsStack, root, true, graph);
+        traverseNodeModulesStructure(startingDependencies, projectFolderStack, root, true, graph);
         return new DetectCodeLocation(BomToolType.NPM, sourcePath, projectName, projectVersion, root.externalId, graph);
     }
 
-    private void traverseNodeModulesStructure(final Set<String> dependenciesCheckList, final Stack<String> nodeModulesPathsStack, final Dependency parent, final boolean firstIteration, final MutableDependencyGraph graph) {
-        while (!nodeModulesPathsStack.isEmpty()) {
-            final String currentNodeModulesPath = nodeModulesPathsStack.pop();
+    private void traverseNodeModulesStructure(final Set<String> dependenciesCheckList, final Stack<NpmProjectFolder> projectFolderStack, final Dependency parent, final boolean firstIteration, final MutableDependencyGraph graph) {
+        while (!projectFolderStack.isEmpty()) {
+            final NpmProjectFolder currentProjectFolder = projectFolderStack.pop();
             final Iterator<String> dependenciesCheckListIterator = dependenciesCheckList.iterator();
             while (dependenciesCheckListIterator.hasNext()) {
                 final String dependencyName = dependenciesCheckListIterator.next();
-                final File dependencyDirectory = new File(currentNodeModulesPath, dependencyName);
-                if (dependencyDirectory.exists()) {
-                    final NpmPackageJson packageJson = generatePackageJson(new File(dependencyDirectory, NpmBomTool.PACKAGE_JSON));
+                final NpmProjectFolder childProjectFolder = currentProjectFolder.getChildNpmProjectFromNodeModules(dependencyName);
+                if (childProjectFolder != null) {
+                    final NpmPackageJson packageJson = childProjectFolder.getPackageJson(gson);
                     if (packageJson.name != null && packageJson.version != null) {
-                        addDependencyToGraph(packageJson, parent, firstIteration, graph, currentNodeModulesPath, dependencyDirectory, nodeModulesPathsStack);
+                        addDependencyToGraph(childProjectFolder, parent, firstIteration, graph, projectFolderStack);
                     }
 
                     dependenciesCheckListIterator.remove();
@@ -97,9 +91,8 @@ public class NpmDependencyFinder {
         }
     }
 
-    private void addDependencyToGraph(final NpmPackageJson packageJson, final Dependency parent, final boolean firstIteration, final MutableDependencyGraph graph, final String currentNodeModulesPath, final File dependencyDirectory,
-            final Stack<String> nodeModulesPathsStack) {
-        final Dependency child = generateDependency(packageJson);
+    private void addDependencyToGraph(final NpmProjectFolder projectFolder, final Dependency parent, final boolean firstIteration, final MutableDependencyGraph graph, final Stack<NpmProjectFolder> projectFolderStack) {
+        final Dependency child = generateDependency(projectFolder.getPackageJson(gson));
         final boolean dependencyAlreadyExists = graph.hasDependency(child);
 
         if (firstIteration) {
@@ -109,14 +102,13 @@ public class NpmDependencyFinder {
         }
 
         if (!dependencyAlreadyExists) {
-            final Stack<String> newNodeModulesPathsStack = (Stack<String>) nodeModulesPathsStack.clone();
-            newNodeModulesPathsStack.add(currentNodeModulesPath);
-            final File currentDirectoryNodeModules = new File(dependencyDirectory, NpmBomTool.NODE_MODULES);
-            if (currentDirectoryNodeModules.exists()) {
-                newNodeModulesPathsStack.add(currentDirectoryNodeModules.getPath());
+            final Stack<NpmProjectFolder> projectFolderStackCopy = (Stack<NpmProjectFolder>) projectFolderStack.clone();
+            projectFolderStackCopy.add(projectFolder.getParentNpmProject());
+            if (projectFolder.getNodeModulesDirectory().exists()) {
+                projectFolderStackCopy.add(projectFolder);
             }
-            final Set<String> startingDependencies = generateStartingDependenciesList(packageJson, false);
-            traverseNodeModulesStructure(startingDependencies, newNodeModulesPathsStack, child, false, graph);
+            final Set<String> startingDependencies = generateStartingDependenciesList(projectFolder.getPackageJson(gson), false);
+            traverseNodeModulesStructure(startingDependencies, projectFolderStackCopy, child, false, graph);
         }
     }
 
@@ -126,17 +118,6 @@ public class NpmDependencyFinder {
         final ExternalId externalId = externalIdFactory.createNameVersionExternalId(Forge.NPM, projectName, projectVersion);
         final Dependency dependency = new Dependency(projectName, projectVersion, externalId);
         return dependency;
-    }
-
-    private NpmPackageJson generatePackageJson(final File packageJsonFile) {
-        try {
-            final FileReader fileReader = new FileReader(packageJsonFile);
-            final JsonReader jsonReader = new JsonReader(fileReader);
-            final NpmPackageJson packageJson = gson.fromJson(jsonReader, NpmPackageJson.class);
-            return packageJson;
-        } catch (final FileNotFoundException e) {
-            return new NpmPackageJson();
-        }
     }
 
     private Set<String> generateStartingDependenciesList(final NpmPackageJson packageJson, final boolean initialProjectDependencies) {
