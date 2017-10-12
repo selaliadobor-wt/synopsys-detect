@@ -36,7 +36,7 @@ import com.google.gson.stream.JsonReader;
 public class NpmPackageFolder {
     private final String path;
     private final File nodeModulesDirectory;
-
+    public String scopedPackageName;
     private NpmPackageJson packageJson = null;
 
     public NpmPackageFolder(final String path) {
@@ -73,6 +73,7 @@ public class NpmPackageFolder {
     }
 
     public List<NpmPackageFolder> getChildNpmProjectsFromNodeModules() {
+
         final List<NpmPackageFolder> packages = new ArrayList<>();
         if (nodeModulesDirectory.exists()) {
             final File[] list = nodeModulesDirectory.listFiles();
@@ -80,6 +81,21 @@ public class NpmPackageFolder {
                 final NpmPackageFolder folder = new NpmPackageFolder(file);
                 if (folder.packageJsonExists()) {
                     packages.add(new NpmPackageFolder(file));
+                }
+            }
+        } else {
+            final File file = new File(path);
+            if (file.getName().startsWith("@")) {
+                final File[] psuedo = file.listFiles();
+                for (final File psuedoFile : psuedo) {
+                    for (final File realFile : psuedoFile.listFiles()) {
+                        final NpmPackageFolder folder = new NpmPackageFolder(realFile);
+                        if (folder.packageJsonExists()) {
+                            final NpmPackageFolder found = new NpmPackageFolder(realFile);
+                            found.scopedPackageName = file.getName();
+                            packages.add(found);
+                        }
+                    }
                 }
             }
         }

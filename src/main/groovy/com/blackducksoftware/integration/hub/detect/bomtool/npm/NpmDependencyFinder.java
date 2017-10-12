@@ -75,7 +75,11 @@ public class NpmDependencyFinder {
             tree.getDependencies().addAll(npmPackageJson.devDependencies.keySet());
         }
         for (final NpmPackageFolder folder : npmProjectFolder.getChildNpmProjectsFromNodeModules()) {
-            tree.getChildren().add(parse(folder, tree, false));
+            final NpmTree childTree = parse(folder, tree, false);
+            if (folder.scopedPackageName != null) {
+                childTree.setName(folder.scopedPackageName + childTree.getName());
+            }
+            tree.getChildren().add(childTree);
         }
         return tree;
     }
