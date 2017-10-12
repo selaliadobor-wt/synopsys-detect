@@ -417,7 +417,6 @@
        "http:npm/gauge/2_7_3",
        "http:npm/cssnano/3_10_0",
        "http:npm/domutils/1_5_1",
-       "http:npm/node_pre_gyp/0_6_32",
        "http:npm/lodash_camelcase/4_3_0",
        "http:npm/trim_newlines/1_0_0",
        "http:npm/url_parse_lax/1_0_0",
@@ -973,17 +972,6 @@
           "http:npm/postcss_unique_selectors/2_0_2",
           "http:npm/postcss_colormin/2_2_2",
           "http:npm/postcss_discard_comments/2_0_4"
-       ],
-       "http:npm/node_pre_gyp/0_6_32":[  
-          "http:npm/tar_pack/3_3_0",
-          "http:npm/mkdirp/0_5_1",
-          "http:npm/npmlog/4_0_2",
-          "http:npm/nopt/3_0_6",
-          "http:npm/tar/2_2_1",
-          "http:npm/rc/1_1_6",
-          "http:npm/request/2_79_0",
-          "http:npm/semver/5_3_0",
-          "http:npm/rimraf/2_5_4"
        ],
        "http:npm/create_hmac/1_1_4":[  
           "http:npm/create_hash/1_1_2",
@@ -5050,10 +5038,6 @@
        "http:npm/lodash_camelcase/4_3_0":{  
           "name":"lodash.camelcase",
           "version":"4.3.0"
-       },
-       "http:npm/node_pre_gyp/0_6_32":{  
-          "name":"node-pre-gyp",
-          "version":"0.6.32"
        },
        "http:npm/trim_newlines/1_0_0":{  
           "name":"trim-newlines",

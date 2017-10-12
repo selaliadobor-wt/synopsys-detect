@@ -39,6 +39,7 @@ import groovy.transform.TypeChecked
 @Component
 @TypeChecked
 class NpmLockfilePackager {
+
     @Autowired
     Gson gson
 
@@ -52,12 +53,14 @@ class NpmLockfilePackager {
         Dependency root = generateDependency(npmProject.name, npmProject.version)
 
         npmProject.dependencies.each { name, npmDependency ->
-            Dependency projectDependency = generateDependency(name, npmDependency.version)
-            graph.addChildToRoot(projectDependency)
+            if (name != null && npmDependency.version != null) {
+                Dependency projectDependency = generateDependency(name, npmDependency.version)
+                graph.addChildToRoot(projectDependency)
 
-            npmDependency.requires?.each { childName, childVersion ->
-                Dependency child = generateDependency(childName, childVersion)
-                graph.addChildWithParent(child, projectDependency)
+                npmDependency.requires?.each { childName, childVersion ->
+                    Dependency child = generateDependency(childName, childVersion)
+                    graph.addChildWithParent(child, projectDependency)
+                }
             }
         }
 
