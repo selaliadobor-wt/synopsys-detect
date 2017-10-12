@@ -81,19 +81,18 @@ public class NpmPackageFolder {
                 final NpmPackageFolder folder = new NpmPackageFolder(file);
                 if (folder.packageJsonExists()) {
                     packages.add(new NpmPackageFolder(file));
-                }
-            }
-        } else {
-            final File file = new File(path);
-            if (file.getName().startsWith("@")) {
-                final File[] psuedo = file.listFiles();
-                for (final File psuedoFile : psuedo) {
-                    for (final File realFile : psuedoFile.listFiles()) {
-                        final NpmPackageFolder folder = new NpmPackageFolder(realFile);
-                        if (folder.packageJsonExists()) {
-                            final NpmPackageFolder found = new NpmPackageFolder(realFile);
-                            found.scopedPackageName = file.getName();
-                            packages.add(found);
+                } else {
+                    if (file.getName().startsWith("@")) {
+                        final File[] psuedo = file.listFiles();
+                        for (final File psuedoFile : psuedo) {
+                            for (final File realFile : psuedoFile.listFiles()) {
+                                final NpmPackageFolder folderInner = new NpmPackageFolder(realFile);
+                                if (folderInner.packageJsonExists()) {
+                                    final NpmPackageFolder found = new NpmPackageFolder(realFile);
+                                    found.scopedPackageName = file.getName();
+                                    packages.add(found);
+                                }
+                            }
                         }
                     }
                 }
