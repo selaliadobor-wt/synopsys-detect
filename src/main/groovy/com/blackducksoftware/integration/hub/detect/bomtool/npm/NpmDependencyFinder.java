@@ -55,14 +55,14 @@ public class NpmDependencyFinder {
     public DetectCodeLocation createDependencyGraph(final String sourcePath) {
 
         final NpmPackageFolder npmProjectFolder = new NpmPackageFolder(sourcePath);
-        final NpmTree tree = parse(npmProjectFolder, null);
+        final NpmTree tree = parse(npmProjectFolder, null, true);
         final MutableDependencyGraph graph = new MutableMapDependencyGraph();
         traverse(tree, graph);
         graph.addChildrenToRoot(graph.getChildrenForParent(dependencyFromTree(tree)));
         return new DetectCodeLocation(BomToolType.NPM, sourcePath, tree.getName(), tree.getVersion(), dependencyFromTree(tree).externalId, graph);
     }
 
-    public NpmTree parse(final NpmPackageFolder npmProjectFolder, final NpmTree parent) {
+    public NpmTree parse(final NpmPackageFolder npmProjectFolder, final NpmTree parent, final boolean includeDev) {
         final NpmPackageJson npmPackageJson = npmProjectFolder.getPackageJson(gson);
 
         final NpmTree tree = new NpmTree();
@@ -71,9 +71,11 @@ public class NpmDependencyFinder {
         tree.setName(npmPackageJson.name);
         tree.setVersion(npmPackageJson.version);
         tree.setDependencies(new ArrayList<>(npmPackageJson.dependencies.keySet()));
-        tree.getDependencies().addAll(npmPackageJson.devDependencies.keySet());
+        if (includeDev) {
+            tree.getDependencies().addAll(npmPackageJson.devDependencies.keySet());
+        }
         for (final NpmPackageFolder folder : npmProjectFolder.getChildNpmProjectsFromNodeModules()) {
-            tree.getChildren().add(parse(folder, tree));
+            tree.getChildren().add(parse(folder, tree, false));
         }
         return tree;
     }
