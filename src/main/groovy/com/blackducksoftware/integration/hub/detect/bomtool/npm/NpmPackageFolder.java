@@ -25,6 +25,8 @@ package com.blackducksoftware.integration.hub.detect.bomtool.npm;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.blackducksoftware.integration.hub.detect.bomtool.NpmBomTool;
 import com.blackducksoftware.integration.hub.detect.bomtool.npm.model.NpmPackageJson;
@@ -68,6 +70,16 @@ public class NpmPackageFolder {
         }
 
         return null;
+    }
+
+    public List<NpmPackageFolder> getChildNpmProjectsFromNodeModules() {
+        final List<NpmPackageFolder> packages = new ArrayList<>();
+        final File[] list = nodeModulesDirectory.listFiles();
+        for (final File file : list) {
+            packages.add(new NpmPackageFolder(file));
+        }
+
+        return packages;
     }
 
     public NpmPackageJson getPackageJson(final Gson gson) {

@@ -22,6 +22,8 @@
  */
 package com.blackducksoftware.integration.hub.detect.bomtool.npm;
 
+import java.util.ArrayList;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -32,6 +34,7 @@ import com.blackducksoftware.integration.hub.bdio.model.dependency.Dependency;
 import com.blackducksoftware.integration.hub.bdio.model.externalid.ExternalId;
 import com.blackducksoftware.integration.hub.bdio.model.externalid.ExternalIdFactory;
 import com.blackducksoftware.integration.hub.detect.DetectConfiguration;
+import com.blackducksoftware.integration.hub.detect.bomtool.npm.model.NpmPackageJson;
 import com.blackducksoftware.integration.hub.detect.bomtool.npm.model.NpmTree;
 import com.blackducksoftware.integration.hub.detect.model.BomToolType;
 import com.blackducksoftware.integration.hub.detect.model.DetectCodeLocation;
@@ -50,10 +53,24 @@ public class NpmDependencyFinder {
     DetectConfiguration detectConfiguration;
 
     public DetectCodeLocation createDependencyGraph(final String sourcePath) {
-        final NpmTree tree; // = i dunno make tree
+
+        final NpmPackageFolder npmProjectFolder = new NpmPackageFolder(sourcePath);
+        final NpmTree tree = parse(npmProjectFolder);
         final MutableDependencyGraph graph = new MutableMapDependencyGraph();
         traverse(tree, graph);
-        return new DetectCodeLocation(BomToolType.NPM, sourcePath, "", "", null, graph);
+        return new DetectCodeLocation(BomToolType.NPM, sourcePath, tree.getName(), tree.getVersion(), dependencyFromTree(tree).externalId, graph);
+    }
+
+    public NpmTree parse(final NpmPackageFolder npmProjectFolder) {
+        final NpmPackageJson npmPackageJson = npmProjectFolder.getPackageJson(gson);
+
+        final NpmTree tree = new NpmTree();
+        tree.setChildren(new ArrayList<NpmTree>());
+        tree.setDependencies(new ArrayList<>(npmPackageJson.dependencies.keySet()));
+        for (final NpmPackageFolder folder : npmProjectFolder.getChildNpmProjectsFromNodeModules()) {
+            tree.getChildren().add(parse(folder));
+        }
+        return tree;
     }
 
     private Dependency dependencyFromTree(final NpmTree tree) {
