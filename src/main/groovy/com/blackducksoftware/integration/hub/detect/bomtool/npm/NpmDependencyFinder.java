@@ -55,20 +55,23 @@ public class NpmDependencyFinder {
     public DetectCodeLocation createDependencyGraph(final String sourcePath) {
 
         final NpmPackageFolder npmProjectFolder = new NpmPackageFolder(sourcePath);
-        final NpmTree tree = parse(npmProjectFolder);
+        final NpmTree tree = parse(npmProjectFolder, null);
         final MutableDependencyGraph graph = new MutableMapDependencyGraph();
         traverse(tree, graph);
         return new DetectCodeLocation(BomToolType.NPM, sourcePath, tree.getName(), tree.getVersion(), dependencyFromTree(tree).externalId, graph);
     }
 
-    public NpmTree parse(final NpmPackageFolder npmProjectFolder) {
+    public NpmTree parse(final NpmPackageFolder npmProjectFolder, final NpmTree parent) {
         final NpmPackageJson npmPackageJson = npmProjectFolder.getPackageJson(gson);
 
         final NpmTree tree = new NpmTree();
+        tree.setParent(parent);
         tree.setChildren(new ArrayList<NpmTree>());
+        tree.setName(npmPackageJson.name);
+        tree.setVersion(npmPackageJson.version);
         tree.setDependencies(new ArrayList<>(npmPackageJson.dependencies.keySet()));
         for (final NpmPackageFolder folder : npmProjectFolder.getChildNpmProjectsFromNodeModules()) {
-            tree.getChildren().add(parse(folder));
+            tree.getChildren().add(parse(folder, tree));
         }
         return tree;
     }
@@ -96,6 +99,11 @@ public class NpmDependencyFinder {
                 return child;
             }
         }
+
+        if (tree.getParent() == null) {
+            return null;
+        }
+
         return findTree(tree.getParent(), name);
     }
 

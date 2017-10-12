@@ -22,11 +22,12 @@
  */
 package com.blackducksoftware.integration.hub.detect.bomtool.npm.model;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class NpmPackageJson {
     public String name;
     public String version;
-    public Map<String, String> dependencies;
-    public Map<String, String> devDependencies;
+    public Map<String, String> dependencies = new HashMap<String, String>();
+    public Map<String, String> devDependencies = new HashMap<String, String>();
 }

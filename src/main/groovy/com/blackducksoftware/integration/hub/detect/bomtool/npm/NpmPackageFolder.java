@@ -74,9 +74,11 @@ public class NpmPackageFolder {
 
     public List<NpmPackageFolder> getChildNpmProjectsFromNodeModules() {
         final List<NpmPackageFolder> packages = new ArrayList<>();
-        final File[] list = nodeModulesDirectory.listFiles();
-        for (final File file : list) {
-            packages.add(new NpmPackageFolder(file));
+        if (nodeModulesDirectory.exists()) {
+            final File[] list = nodeModulesDirectory.listFiles();
+            for (final File file : list) {
+                packages.add(new NpmPackageFolder(file));
+            }
         }
 
         return packages;
