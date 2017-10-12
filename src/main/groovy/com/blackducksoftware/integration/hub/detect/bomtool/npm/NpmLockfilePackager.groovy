@@ -30,6 +30,7 @@ import com.blackducksoftware.integration.hub.bdio.model.Forge
 import com.blackducksoftware.integration.hub.bdio.model.dependency.Dependency
 import com.blackducksoftware.integration.hub.bdio.model.externalid.ExternalId
 import com.blackducksoftware.integration.hub.bdio.model.externalid.ExternalIdFactory
+import com.blackducksoftware.integration.hub.detect.bomtool.npm.model.NpmPackage
 import com.blackducksoftware.integration.hub.detect.model.BomToolType
 import com.blackducksoftware.integration.hub.detect.model.DetectCodeLocation
 import com.google.gson.Gson
@@ -47,7 +48,7 @@ class NpmLockfilePackager {
     ExternalIdFactory externalIdFactory
 
     public DetectCodeLocation parse(String sourcePath, String lockFileText) {
-        NpmProject npmProject = gson.fromJson(lockFileText, NpmProject.class)
+        NpmPackage npmProject = gson.fromJson(lockFileText, NpmPackage.class)
         MutableMapDependencyGraph graph = new MutableMapDependencyGraph()
 
         Dependency root = generateDependency(npmProject.name, npmProject.version)

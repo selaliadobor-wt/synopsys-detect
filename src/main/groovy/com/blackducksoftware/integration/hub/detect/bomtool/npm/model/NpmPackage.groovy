@@ -20,14 +20,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.blackducksoftware.integration.hub.detect.bomtool.npm
+package com.blackducksoftware.integration.hub.detect.bomtool.npm.model
 
 import com.google.gson.annotations.SerializedName
 
 import groovy.transform.TypeChecked
 
 @TypeChecked
-class NpmProject {
+class NpmPackage {
     @SerializedName('name')
     String name
 

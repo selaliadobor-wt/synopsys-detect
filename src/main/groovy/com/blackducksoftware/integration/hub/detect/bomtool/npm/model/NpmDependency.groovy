@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2017 Black Duck Software, Inc.
  * http://www.blackducksoftware.com/
  *
@@ -20,13 +20,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.blackducksoftware.integration.hub.detect.bomtool.npm;
+package com.blackducksoftware.integration.hub.detect.bomtool.npm.model
 
-import java.util.Map;
+import com.google.gson.annotations.SerializedName
 
-public class NpmPackageJson {
-    public String name;
-    public String version;
-    public Map<String, String> dependencies;
-    public Map<String, String> devDependencies;
+import groovy.transform.TypeChecked
+
+@TypeChecked
+class NpmDependency {
+    @SerializedName('version')
+    String version
+
+    @SerializedName('requires')
+    Map<String, String> requires
 }

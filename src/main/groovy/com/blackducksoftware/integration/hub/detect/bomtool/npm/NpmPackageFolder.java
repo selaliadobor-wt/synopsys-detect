@@ -27,31 +27,32 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 
 import com.blackducksoftware.integration.hub.detect.bomtool.NpmBomTool;
+import com.blackducksoftware.integration.hub.detect.bomtool.npm.model.NpmPackageJson;
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
 
-public class NpmProjectFolder {
+public class NpmPackageFolder {
     private final String path;
     private final File nodeModulesDirectory;
 
     private NpmPackageJson packageJson = null;
 
-    public NpmProjectFolder(final String path) {
+    public NpmPackageFolder(final String path) {
         this.path = path;
         nodeModulesDirectory = new File(path, NpmBomTool.NODE_MODULES);
     }
 
-    public NpmProjectFolder(final File projectDirectory) {
+    public NpmPackageFolder(final File projectDirectory) {
         this.path = projectDirectory.getPath();
         this.nodeModulesDirectory = new File(projectDirectory, NpmBomTool.NODE_MODULES);
     }
 
-    public NpmProjectFolder getParentNpmProject() {
+    public NpmPackageFolder getParentNpmProject() {
         File nodeModulesParent = nodeModulesDirectory.getParentFile();
 
         while (nodeModulesParent != null) {
             if (NpmBomTool.NODE_MODULES.equals(nodeModulesParent.getName())) {
-                return new NpmProjectFolder(nodeModulesParent.getParentFile());
+                return new NpmPackageFolder(nodeModulesParent.getParentFile());
             }
 
             nodeModulesParent = nodeModulesParent.getParentFile();
@@ -60,10 +61,10 @@ public class NpmProjectFolder {
         return null;
     }
 
-    public NpmProjectFolder getChildNpmProjectFromNodeModules(final String npmProjectName) {
+    public NpmPackageFolder getChildNpmProjectFromNodeModules(final String npmProjectName) {
         final File projectFolder = new File(nodeModulesDirectory, npmProjectName);
         if (projectFolder.exists()) {
-            return new NpmProjectFolder(projectFolder);
+            return new NpmPackageFolder(projectFolder);
         }
 
         return null;
