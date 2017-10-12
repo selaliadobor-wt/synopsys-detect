@@ -58,6 +58,7 @@ public class NpmDependencyFinder {
         final NpmTree tree = parse(npmProjectFolder, null);
         final MutableDependencyGraph graph = new MutableMapDependencyGraph();
         traverse(tree, graph);
+        graph.addChildrenToRoot(graph.getChildrenForParent(dependencyFromTree(tree)));
         return new DetectCodeLocation(BomToolType.NPM, sourcePath, tree.getName(), tree.getVersion(), dependencyFromTree(tree).externalId, graph);
     }
 

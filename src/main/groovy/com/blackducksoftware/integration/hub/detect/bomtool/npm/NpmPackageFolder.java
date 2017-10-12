@@ -77,11 +77,19 @@ public class NpmPackageFolder {
         if (nodeModulesDirectory.exists()) {
             final File[] list = nodeModulesDirectory.listFiles();
             for (final File file : list) {
-                packages.add(new NpmPackageFolder(file));
+                final NpmPackageFolder folder = new NpmPackageFolder(file);
+                if (folder.packageJsonExists()) {
+                    packages.add(new NpmPackageFolder(file));
+                }
             }
         }
 
         return packages;
+    }
+
+    public boolean packageJsonExists() {
+        final File packageJsonFile = new File(path, NpmBomTool.PACKAGE_JSON);
+        return packageJsonFile.exists();
     }
 
     public NpmPackageJson getPackageJson(final Gson gson) {
