@@ -108,8 +108,9 @@ class Application {
                 return
             }
 
-            detectConfiguration.init()
             executableManager.init()
+            detectConfiguration.init()
+
             logger.info('Configuration processed completely.')
             if (!detectConfiguration.suppressConfigurationOutput) {
                 detectConfiguration.logConfiguration()

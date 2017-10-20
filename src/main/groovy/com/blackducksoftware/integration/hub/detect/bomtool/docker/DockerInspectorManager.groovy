@@ -32,7 +32,6 @@ import com.blackducksoftware.integration.hub.detect.DetectConfiguration
 import com.blackducksoftware.integration.hub.detect.bomtool.gradle.GradleInspectorManager
 import com.blackducksoftware.integration.hub.detect.model.BomToolType
 import com.blackducksoftware.integration.hub.detect.util.DetectFileManager
-import com.blackducksoftware.integration.hub.detect.util.executable.Executable
 import com.blackducksoftware.integration.hub.detect.util.executable.ExecutableRunner
 import com.blackducksoftware.integration.hub.rest.UnauthenticatedRestConnection
 import com.blackducksoftware.integration.log.Slf4jIntLogger
@@ -58,8 +57,14 @@ class DockerInspectorManager {
     @Autowired
     ExecutableRunner executableRunner
 
+    @Autowired
+    BashScriptRunner bashScriptRunner
+
     private File dockerInspectorShellScript
     private String inspectorVersion
+
+    void ExecuteBash() {
+    }
 
     String getInspectorVersion(String bashExecutablePath) {
         if ('latest'.equalsIgnoreCase(detectConfiguration.getDockerInspectorVersion())) {
@@ -69,13 +74,11 @@ class DockerInspectorManager {
                 if(!dockerInspectorShellScript) {
                     dockerInspectorShellScript = getShellScript()
                 }
-                List<String> bashArguments = [
-                    '-c',
-                    "\"${dockerInspectorShellScript.getCanonicalPath()}\" --version" as String
-                ]
-                Executable getDockerInspectorVersion = new Executable(dockerBomToolDirectory, bashExecutablePath, bashArguments)
-
-                inspectorVersion = executableRunner.execute(getDockerInspectorVersion).standardOutput.split(' ')[1]
+                List<String> scriptArgs = ["--version"];
+                def exeOutput = bashScriptRunner.runScript(dockerInspectorShellScript, bashExecutablePath, dockerBomToolDirectory, scriptArgs);
+                def output = exeOutput.standardOutput;
+                def versionPieces = output.split(' ');
+                inspectorVersion = versionPieces[1]
             }
         } else {
             inspectorVersion = detectConfiguration.getDockerInspectorVersion()

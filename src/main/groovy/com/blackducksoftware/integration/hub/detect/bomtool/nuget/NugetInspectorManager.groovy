@@ -54,23 +54,14 @@ class NugetInspectorManager {
     public String getInspectorVersion(final String nugetExecutablePath) {
         if ('latest'.equalsIgnoreCase(detectConfiguration.getNugetInspectorPackageVersion())) {
             if (!inspectorVersion) {
-                final def nugetOptions = [
-                    'list',
-                    detectConfiguration.getNugetInspectorPackageName()
-                ]
+                final def nugetOptions = ['list', detectConfiguration.getNugetInspectorPackageName()]
                 def airGapNugetInspectorDirectory = new File(detectConfiguration.getNugetInspectorAirGapPath())
                 if (airGapNugetInspectorDirectory.exists()) {
                     logger.debug('Running in airgap mode. Resolving version from local path')
-                    nugetOptions.addAll([
-                        '-Source',
-                        detectConfiguration.getNugetInspectorAirGapPath()
-                    ])
+                    nugetOptions.addAll(['-Source', detectConfiguration.getNugetInspectorAirGapPath()])
                 } else {
                     logger.debug('Running online. Resolving version through nuget')
-                    nugetOptions.addAll([
-                        '-Source',
-                        detectConfiguration.getNugetPackagesRepoUrl()
-                    ])
+                    nugetOptions.addAll(['-Source', detectConfiguration.getNugetPackagesRepoUrl()])
                 }
                 Executable getInspectorVersionExecutable = new Executable(detectConfiguration.sourceDirectory, nugetExecutablePath, nugetOptions)
 
@@ -83,7 +74,7 @@ class NugetInspectorManager {
                 }
             }
         } else {
-            inspectorVersion = detectConfiguration.getDockerInspectorVersion()
+            inspectorVersion = detectConfiguration.getNugetInspectorPackageVersion();
         }
         return inspectorVersion
     }
@@ -106,10 +97,7 @@ class NugetInspectorManager {
                 detectConfiguration.getNugetPackagesRepoUrl()
             ]
             if (!'latest'.equalsIgnoreCase(detectConfiguration.getNugetInspectorPackageVersion())) {
-                nugetOptions.addAll([
-                    '-Version',
-                    detectConfiguration.getNugetInspectorPackageVersion()
-                ])
+                nugetOptions.addAll(['-Version', detectConfiguration.getNugetInspectorPackageVersion()])
             }
             Executable installInspectorExecutable = new Executable(detectConfiguration.sourceDirectory, nugetExecutablePath, nugetOptions)
             executableRunner.execute(installInspectorExecutable)

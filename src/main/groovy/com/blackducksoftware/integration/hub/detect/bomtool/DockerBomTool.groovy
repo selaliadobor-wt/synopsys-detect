@@ -35,6 +35,7 @@ import com.blackducksoftware.integration.hub.bdio.model.Forge
 import com.blackducksoftware.integration.hub.bdio.model.SimpleBdioDocument
 import com.blackducksoftware.integration.hub.bdio.model.externalid.ExternalId
 import com.blackducksoftware.integration.hub.bdio.model.externalid.ExternalIdFactory
+import com.blackducksoftware.integration.hub.detect.bomtool.docker.BashScriptRunner
 import com.blackducksoftware.integration.hub.detect.bomtool.docker.DockerInspectorManager
 import com.blackducksoftware.integration.hub.detect.bomtool.docker.DockerProperties
 import com.blackducksoftware.integration.hub.detect.hub.HubSignatureScanner
@@ -71,6 +72,9 @@ class DockerBomTool extends BomTool {
 
     @Autowired
     DockerInspectorManager dockerInspectorManager
+
+    @Autowired
+    BashScriptRunner bashScriptRunner
 
     private String dockerExecutablePath
     private String bashExecutablePath
@@ -122,20 +126,14 @@ class DockerBomTool extends BomTool {
         path += File.pathSeparator + dockerExecutableFile.parentFile.getCanonicalPath()
         Map<String, String> environmentVariables = [PATH: path]
 
-        List<String> bashArguments = [
-            '-c',
-            "\"${dockerInspectorShellScript.getCanonicalPath()}\" --spring.config.location=\"${dockerPropertiesFile.getCanonicalPath()}\" --dry.run=true --no.prompt=true ${imageArgument}" as String
-        ]
+        List<String> scriptArguments = ["--spring.config.location=\"${dockerPropertiesFile.getCanonicalPath()}\"" as String, "--dry.run=true", "--no.prompt=true", imageArgument];
         def airGapHubDockerInspectorJar = new File("${detectConfiguration.getDockerInspectorAirGapPath()}", "hub-docker-inspector-${dockerInspectorManager.getInspectorVersion(bashExecutablePath)}.jar")
         if (airGapHubDockerInspectorJar.exists()) {
             try {
                 for (String os : ['ubuntu', 'alpine', 'centos']) {
                     def dockerImage = new File(airGapHubDockerInspectorJar.getParentFile(), "hub-docker-inspector-${os}.tar")
-                    List<String> dockerImportArguments = [
-                        '-c',
-                        "docker load -i \"${dockerImage.getCanonicalPath()}\"" as String
-                    ]
-                    bashArguments[1] = "\"${dockerInspectorShellScript.getCanonicalPath()}\" --spring.config.location=\"${dockerPropertiesFile.getCanonicalPath()}\" --dry.run=true --no.prompt=true --jar.path=\"${airGapHubDockerInspectorJar.getCanonicalPath()}\" ${imageArgument}" as String
+                    List<String> dockerImportArguments = ['-c', "docker load -i \"${dockerImage.getCanonicalPath()}\"" as String]
+                    scriptArguments.add("--jar.path=\"${airGapHubDockerInspectorJar.getCanonicalPath()}\"" as String)
                     Executable dockerImportImageExecutable = new Executable(dockerBomToolDirectory, environmentVariables, bashExecutablePath, dockerImportArguments)
                     executableRunner.execute(dockerImportImageExecutable)
                 }
@@ -144,8 +142,8 @@ class DockerBomTool extends BomTool {
                 logger.debug(e.getMessage())
             }
         }
-        Executable dockerExecutable = new Executable(dockerBomToolDirectory, environmentVariables, bashExecutablePath, bashArguments)
-        executableRunner.execute(dockerExecutable)
+
+        bashScriptRunner.runScript(dockerInspectorShellScript, bashExecutablePath, dockerBomToolDirectory, environmentVariables, scriptArguments);
 
         if (usingTarFile) {
             hubSignatureScanner.registerPathToScan(new File(detectConfiguration.dockerTar))
