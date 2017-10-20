@@ -126,7 +126,7 @@ class DockerBomTool extends BomTool {
         path += File.pathSeparator + dockerExecutableFile.parentFile.getCanonicalPath()
         Map<String, String> environmentVariables = [PATH: path]
 
-        List<String> scriptArguments = ["--spring.config.location=\"${dockerPropertiesFile.getCanonicalPath()}\"" as String, "--dry.run=true", "--no.prompt=true", imageArgument];
+        List<String> scriptArguments = ["--spring.config.location=\"file:${dockerPropertiesFile.getCanonicalPath()}\"" as String, "--dry.run=true", "--no.prompt=true", imageArgument];
         def airGapHubDockerInspectorJar = new File("${detectConfiguration.getDockerInspectorAirGapPath()}", "hub-docker-inspector-${dockerInspectorManager.getInspectorVersion(bashExecutablePath)}.jar")
         if (airGapHubDockerInspectorJar.exists()) {
             try {
