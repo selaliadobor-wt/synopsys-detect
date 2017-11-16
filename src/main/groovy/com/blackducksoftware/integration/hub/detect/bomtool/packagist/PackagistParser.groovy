@@ -22,6 +22,8 @@
  */
 package com.blackducksoftware.integration.hub.detect.bomtool.packagist
 
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 
@@ -42,6 +44,7 @@ import groovy.transform.TypeChecked
 @Component
 @TypeChecked
 class PackagistParser {
+    private final Logger logger = LoggerFactory.getLogger(PackagistParser.class)
 
     @Autowired
     ExternalIdFactory externalIdFactory
@@ -59,6 +62,20 @@ class PackagistParser {
 
         List<PackagistDependency> packagistPackages = parsePackages(packagesJson, includeDev)
         addToGraph(graph, null, projectPackages, packagistPackages, true)
+
+        List<String> allLockPackageNames = packagistPackages.collect { it.name }
+        projectPackages.each {
+            if (!allLockPackageNames.contains(it)){
+                logger.warn("A discrepency exists between the composer.json and the composer.lock - the package '${it}' was in the json but not the lock.");
+            }
+        }
+        packagistPackages.each {
+            Dependency dependency = convertToDependency(it);
+            if (!graph.hasDependency(dependency)){
+                logger.warn("A discrepency exists between the composer.json and the composer.lock - the package '${it.name}' was in the lock but was not included in the json dependency tree.");
+            }
+        }
+
 
         ExternalId projectExternalId;
         if (projectName == null || projectVersion == null){
