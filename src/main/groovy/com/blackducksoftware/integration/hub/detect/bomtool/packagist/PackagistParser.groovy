@@ -31,7 +31,6 @@ import com.blackducksoftware.integration.hub.bdio.model.Forge
 import com.blackducksoftware.integration.hub.bdio.model.dependency.Dependency
 import com.blackducksoftware.integration.hub.bdio.model.externalid.ExternalId
 import com.blackducksoftware.integration.hub.bdio.model.externalid.ExternalIdFactory
-import com.blackducksoftware.integration.hub.detect.DetectConfiguration
 import com.blackducksoftware.integration.hub.detect.model.BomToolType
 import com.blackducksoftware.integration.hub.detect.model.DetectCodeLocation
 import com.google.gson.JsonArray
@@ -43,30 +42,23 @@ import groovy.transform.TypeChecked
 @Component
 @TypeChecked
 class PackagistParser {
-    @Autowired
-    DetectConfiguration detectConfiguration
 
     @Autowired
     ExternalIdFactory externalIdFactory
 
-    public DetectCodeLocation getDependencyGraphFromProject(String sourcePath, String composerJsonText, String composerLockText) {
+    public DetectCodeLocation getDependencyGraphFromProject(String sourcePath, String composerJsonText, String composerLockText, boolean includeDev) {
         MutableDependencyGraph graph = new MutableMapDependencyGraph();
 
         JsonObject composerJsonObject = new JsonParser().parse(composerJsonText) as JsonObject
         String projectName = composerJsonObject.get('name')?.getAsString()
         String projectVersion = composerJsonObject.get('version')?.getAsString()
+        List<String> projectPackages = parseRequiredPackages(composerJsonObject, false)
 
         JsonObject composerLockObject = new JsonParser().parse(composerLockText) as JsonObject
-        JsonArray packagistPackages = composerLockObject.get('packages')?.getAsJsonArray()
-        List<String> startingPackages = getStartingPackages(composerJsonObject, false)
+        JsonArray packagesJson = composerLockObject.get('packages')?.getAsJsonArray()
 
-        if (detectConfiguration.getPackagistIncludeDevDependencies()) {
-            JsonArray packagistDevPackages = composerLockObject.get('packages-dev')?.getAsJsonArray()
-            packagistPackages.addAll(packagistDevPackages)
-            List<String> startingDevPackages = getStartingPackages(composerJsonObject, true)
-            startingPackages.addAll(startingDevPackages)
-        }
-        convertFromJsonToDependency(graph, null, startingPackages, packagistPackages, true)
+        List<PackagistDependency> packagistPackages = parsePackages(packagesJson, includeDev)
+        addToGraph(graph, null, projectPackages, packagistPackages, true)
 
         ExternalId projectExternalId;
         if (projectName == null || projectVersion == null){
@@ -78,45 +70,62 @@ class PackagistParser {
         new DetectCodeLocation(BomToolType.PACKAGIST, sourcePath, projectName, projectVersion, projectExternalId, graph)
     }
 
-    private void convertFromJsonToDependency(MutableDependencyGraph graph, Dependency parent, List<String> currentPackages, JsonArray jsonArray, Boolean root) {
-        if (!currentPackages) {
-            return
-        }
-
+    private List<PackagistDependency> parsePackages(JsonArray jsonArray, boolean includeDev) {
+        List<PackagistDependency>  packages = new ArrayList<PackagistDependency>();
         jsonArray.each {
-            String currentRowPackageName = it.getAt('name').toString().replace('"', '')
-
-            if (currentPackages.contains(currentRowPackageName)) {
-                String currentRowPackageVersion = it.getAt('version').toString().replace('"', '')
-
-                Dependency child = new Dependency(currentRowPackageName, currentRowPackageVersion, externalIdFactory.createNameVersionExternalId(Forge.PACKAGIST, currentRowPackageName, currentRowPackageVersion))
-
-                convertFromJsonToDependency(graph, child, getStartingPackages(it.getAsJsonObject(), false), jsonArray, false)
-                if (root){
-                    graph.addChildToRoot(child)
-                }else{
-                    graph.addParentWithChild(parent, child)
-                }
-            }
+            def dependency = new PackagistDependency();
+            dependency.name = it.getAt('name').toString().replace('"', '')
+            dependency.version = it.getAt('version').toString().replace('"', '')
+            dependency.requires = parseRequiredPackages(it.getAsJsonObject(), includeDev);
+            packages.add(dependency);
         }
+        return packages;
     }
 
-    private List<String> getStartingPackages(JsonObject jsonFile, boolean checkDev) {
-        List<String> allRequires = []
-        def requiredPackages
+    private List<String> parseRequiredPackages(JsonObject jsonObject, boolean includeDev) {
+        List<String> requires = new ArrayList<String>();
 
-        if (checkDev) {
-            requiredPackages = jsonFile.get('require-dev')?.getAsJsonObject()
-        } else {
-            requiredPackages = jsonFile.get('require')?.getAsJsonObject()
+        requires.addAll(parseRequiredPackagesProperty(jsonObject, 'require'));
+
+        if (includeDev){
+            requires.addAll(parseRequiredPackagesProperty(jsonObject, 'require-dev'));
         }
+
+        return requires
+    }
+
+    private List<String> parseRequiredPackagesProperty(JsonObject jsonObject, String property){
+        List<String> requires = new ArrayList<String>();
+
+        def requiredPackages = jsonObject.get(property)?.getAsJsonObject()
 
         requiredPackages?.entrySet().each {
             if (!it.key.equalsIgnoreCase('php')) {
-                allRequires.add(it.key)
+                requires.add(it.key);
             }
         }
 
-        allRequires
+        return requires
+    }
+
+    private Dependency convertToDependency(PackagistDependency dependency) {
+        ExternalId id = externalIdFactory.createNameVersionExternalId(Forge.PACKAGIST, dependency.name, dependency.version);
+        Dependency newDependency = new Dependency(dependency.name, dependency.version, id);
+        return newDependency;
+    }
+
+    private void addToGraph(MutableDependencyGraph graph, Dependency parent, List<String> currentRequiredPackages, List<PackagistDependency> allPackages, Boolean root) {
+        allPackages.each {
+            if (currentRequiredPackages.contains(it.name)){
+                Dependency dependency = convertToDependency(it);
+
+                addToGraph(graph, dependency, it.requires, allPackages, false);
+                if (root){
+                    graph.addChildToRoot(dependency)
+                }else{
+                    graph.addParentWithChild(parent, dependency)
+                }
+            }
+        }
     }
 }

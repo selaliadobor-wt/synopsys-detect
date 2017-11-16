@@ -4,7 +4,6 @@ import org.junit.Assert
 import org.junit.Test
 
 import com.blackducksoftware.integration.hub.bdio.model.externalid.ExternalIdFactory
-import com.blackducksoftware.integration.hub.detect.DetectConfiguration
 import com.blackducksoftware.integration.hub.detect.model.DetectCodeLocation
 import com.blackducksoftware.integration.hub.detect.testutils.DependencyGraphResourceTestUtil
 import com.blackducksoftware.integration.hub.detect.testutils.TestUtil
@@ -14,16 +13,12 @@ class PackagistTest {
 
     @Test
     public void packagistParserTest() throws IOException {
-        final DetectConfiguration detectConfiguration = new DetectConfiguration()
-        detectConfiguration.packagistIncludeDevDependencies = true
-
         final PackagistParser packagistParser = new PackagistParser()
         packagistParser.externalIdFactory = new ExternalIdFactory()
-        packagistParser.detectConfiguration = detectConfiguration
 
         final String composerLockText = testUtil.getResourceAsUTF8String('/packagist/composer.lock')
         final String composerJsonText = testUtil.getResourceAsUTF8String('/packagist/composer.json')
-        DetectCodeLocation codeLocation = packagistParser.getDependencyGraphFromProject("source", composerJsonText, composerLockText)
+        DetectCodeLocation codeLocation = packagistParser.getDependencyGraphFromProject("source", composerJsonText, composerLockText, true)
 
         Assert.assertEquals(codeLocation.bomToolProjectName, "clue/graph-composer");
         Assert.assertEquals(codeLocation.bomToolProjectVersionName, "1.0.0");
