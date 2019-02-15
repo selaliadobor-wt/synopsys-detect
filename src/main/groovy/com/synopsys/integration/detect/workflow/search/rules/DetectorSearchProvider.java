@@ -102,8 +102,9 @@ public class DetectorSearchProvider {
         searchRuleSet.addBomTool(detectorFactory.createGemlockBomTool(environment)).defaultNotNested();
         searchRuleSet.addBomTool(detectorFactory.createSbtResolutionCacheBomTool(environment)).defaultNotNested();
         searchRuleSet.addBomTool(detectorFactory.createPearCliBomTool(environment)).defaultNotNested();
-
         searchRuleSet.addBomTool(detectorFactory.createClangBomTool(environment)).defaultNested();
+
+        searchRuleSet.addBomTool(detectorFactory.createCarthageBomTool(environment)).defaultNotNested();
 
         return searchRuleSet.build();
     }

@@ -21,35 +21,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.synopsys.integration.detect.detector;
+package com.synopsys.integration.detect.detector.carthage;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
+public abstract class BaseCarthageParser {
+    protected int getLineLevel(final String line) {
+        int level = 0;
+        String tmpLine = line;
+        while (tmpLine.startsWith("  ")) {
+            tmpLine = tmpLine.replaceFirst("  ", "");
+            level++;
+        }
 
-public enum DetectorType {
-    BITBAKE,
-    COCOAPODS,
-    CONDA,
-    CPAN,
-    CRAN,
-    GO_DEP,
-    GO_VNDR,
-    GO_VENDOR,
-    GRADLE,
-    HEX,
-    MAVEN,
-    NPM,
-    NUGET,
-    PACKAGIST,
-    PEAR,
-    PIP,
-    RUBYGEMS,
-    SBT,
-    YARN,
-    CARTHAGE,
-    CLANG;
-
-    public static final List<String> POSSIBLE_NAMES = Arrays.stream(DetectorType.values()).map(DetectorType::name).collect(Collectors.toList());
-
+        return level;
+    }
 }

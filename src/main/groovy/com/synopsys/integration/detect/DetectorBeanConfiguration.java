@@ -29,6 +29,9 @@ import java.util.List;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
 
+import com.synopsys.integration.detect.detector.carthage.CarthageListParser;
+import com.synopsys.integration.detect.detector.carthage.CarthageLockDetector;
+import com.synopsys.integration.detect.detector.carthage.CarthageLockExtractor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.Bean;
@@ -258,8 +261,18 @@ public class DetectorBeanConfiguration {
     }
 
     @Bean
+    public CarthageListParser carthageListParser() {
+        return new CarthageListParser(externalIdFactory);
+    }
+
+    @Bean
     public CpanCliExtractor cpanCliExtractor() {
         return new CpanCliExtractor(cpanListParser(), externalIdFactory, executableRunner, directoryManager);
+    }
+
+    @Bean
+    public CarthageLockExtractor carthageLockExtractor() {
+        return new CarthageLockExtractor(externalIdFactory, carthageListParser());
     }
 
     @Bean
@@ -516,6 +529,12 @@ public class DetectorBeanConfiguration {
     @Scope(scopeName = BeanDefinition.SCOPE_PROTOTYPE)
     public CpanCliDetector cpanCliBomTool(final DetectorEnvironment environment) {
         return new CpanCliDetector(environment, detectFileFinder, cacheableExecutableFinder, cpanCliExtractor());
+    }
+
+    @Bean
+    @Scope(scopeName = BeanDefinition.SCOPE_PROTOTYPE)
+    public CarthageLockDetector carthageBomTool(final DetectorEnvironment environment) {
+        return new CarthageLockDetector(environment, detectFileFinder, carthageLockExtractor());
     }
 
     @Bean
