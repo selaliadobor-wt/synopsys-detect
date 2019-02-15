@@ -52,6 +52,7 @@ public class CacheableExecutableFinder {
         PEAR,
         YARN,
         JAVA,
+        CARTHAGE,
         BAZEL
     }
 

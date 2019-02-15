@@ -23,6 +23,7 @@
  */
 package com.synopsys.integration.detect.detector;
 
+import com.synopsys.integration.detect.detector.carthage.CarthageLockDetector;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
@@ -178,4 +179,7 @@ public class DetectorFactory implements BeanFactoryAware {
         return beanFactory.getBean(YarnLockDetector.class, environment);
     }
 
+    public CarthageLockDetector createCarthageBomTool(final DetectorEnvironment environment) {
+        return beanFactory.getBean(CarthageLockDetector.class, environment);
+    }
 }

@@ -47,6 +47,7 @@ public enum DetectorType {
     RUBYGEMS,
     SBT,
     YARN,
+    CARTHAGE,
     CLANG;
 
     public static final List<String> POSSIBLE_NAMES = Arrays.stream(DetectorType.values()).map(DetectorType::name).collect(Collectors.toList());
